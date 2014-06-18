@@ -2,8 +2,16 @@
 
 source common.sh
 
+# -- prerequisites
+installPrerequisites
+
 # -- networking-related
+configureIptables
+configureHostsFile
 checkControllerNodeConnectivity
+
+# -- repositories
+installRepoPackages
 
 # -- NTP
 installNtpServer
@@ -23,3 +31,7 @@ defineUsersTenantsRoles
 defineServicesApiEndpoints
 createKeystoneEnvironmentFile
 verifyIdentityServiceInstall
+
+# -- OpenStack command-line clients
+installPythonDeps
+installCommandLineTools

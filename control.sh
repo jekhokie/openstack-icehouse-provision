@@ -196,3 +196,35 @@ function defineServicesApiEndpoints {
 
   printSuccess
 }
+
+# -- populate an environment file that can be sourced and used for auth
+function createKeystoneEnvironmentFile {
+  printInfo "Creating Keystone environment file..."
+
+  sudo grep "CREATE_KEYSTONERC_FILE" $INSTALLFILE &>$LOGFILE
+  if [[ $? -ne 0 ]]; then
+    cat << EOF > /root/admin-openrc.sh
+export OS_USERNAME=admin
+export OS_PASSWORD=$KEYSTONE_ADMIN_PASSWORD
+export OS_TENANT_NAME=admin
+export OS_AUTH_URL=http://controller:35357/v2.0
+EOF
+    sudo echo "CREATE_KEYSTONERC_FILE" >> $INSTALLFILE
+  fi
+
+  printSuccess
+}
+
+# -- verify that the identity service installation was successful
+function verifyIdentityServiceInstall {
+  printInfo "Checking identity service installation..."
+
+  sudo grep "CHECK_IDENTITY_SERVICE_INSTALL" $INSTALLFILE &>$LOGFILE
+  if [[ $? -ne 0 ]]; then
+    sudo -s /bin/bash -c "source /root/admin-openrc.sh && keystone token-get &>$LOGFILE" || { printError; }
+    sudo -s /bin/bash -c "source /root/admin-openrc.sh && keystone token-get &>$LOGFILE" || { printError; }
+    sudo echo "CHECK_IDENTITY_SERVICE_INSTALL" >> $INSTALLFILE
+  fi
+
+  printSuccess
+}

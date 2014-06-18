@@ -151,28 +151,47 @@ function defineUsersTenantsRoles {
   # create admin user, role and tenant
   sudo grep "ADMIN_USER_ROLE_TENANT_CREATE" $INSTALLFILE &>$LOGFILE
   if [[ $? -ne 0 ]]; then
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-create   --name="admin" --pass="$KEYSTONE_ADMIN_PASSWORD" --email="$KEYSTONE_ADMIN_EMAIL" &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" role-create   --name="admin"                                                                   &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="admin" --description="Admin Tenant"                                      &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="admin" --tenant="admin" --role="admin"                                   &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="admin" --role="_member_" --tenant="admin"                                &>/dev/null || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-create   --name="admin" --pass="$KEYSTONE_ADMIN_PASSWORD" --email="$KEYSTONE_ADMIN_EMAIL" &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" role-create   --name="admin"                                                                   &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="admin" --description="Admin Tenant"                                      &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="admin" --tenant="admin" --role="admin"                                   &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="admin" --role="_member_" --tenant="admin"                                &>$LOGFILE || { printError; }
     sudo echo "ADMIN_USER_ROLE_TENANT_CREATE" >> $INSTALLFILE
   fi
 
   # create a demo user, role and tenant
   sudo grep "DEMO_USER_ROLE_TENANT_CREATE" $INSTALLFILE &>$LOGFILE
   if [[ $? -ne 0 ]]; then
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-create   --name="demo" --pass="$KEYSTONE_DEMO_PASSWORD" --email="$KEYSTONE_DEMO_EMAIL" &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="demo" --description="Demo Tenant"                                     &>/dev/null || { printError; }
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="demo" --role="_member_" --tenant="demo"                               &>/dev/null || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-create   --name="demo" --pass="$KEYSTONE_DEMO_PASSWORD" --email="$KEYSTONE_DEMO_EMAIL" &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="demo" --description="Demo Tenant"                                     &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" user-role-add --user="demo" --role="_member_" --tenant="demo"                               &>$LOGFILE || { printError; }
     sudo echo "DEMO_USER_ROLE_TENANT_CREATE" >> $INSTALLFILE
   fi
 
   # create a service tenant
   sudo grep "SERVICE_TENANT_CREATE" $INSTALLFILE &>$LOGFILE
   if [[ $? -ne 0 ]]; then
-    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="service" --description="Service Tenant" &>/dev/null || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" tenant-create --name="service" --description="Service Tenant" &>$LOGFILE || { printError; }
     sudo echo "SERVICE_TENANT_CREATE" >> $INSTALLFILE
+  fi
+
+  printSuccess
+}
+
+# -- configure services and API endpoints
+function defineServicesApiEndpoints {
+  printInfo "Creating service and API endpoints..."
+
+  # create admin user, role and tenant
+  sudo grep "REGISTER_IDENTITY_SERVICE" $INSTALLFILE &>$LOGFILE
+  if [[ $? -ne 0 ]]; then
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" service-create --name="keystone" --type="identity" --description="OpenStack Identity" &>$LOGFILE || { printError; }
+    sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" endpoint-create \
+      --service-id=$(sudo keystone --os-token "$KEYSTONE_AUTH_TOKEN" --os-endpoint "http://controller:35357/v2.0" service-list | awk '/ identity / {print $2}') \
+      --publicurl="http://controller:5000/v2.0"                                  \
+      --internalurl="http://controller:5000/v2.0"                                \
+      --adminurl="http://controller:35357/v2.0" &>$LOGFILE || { printError; }
+    sudo echo "REGISTER_IDENTITY_SERVICE" >> $INSTALLFILE
   fi
 
   printSuccess

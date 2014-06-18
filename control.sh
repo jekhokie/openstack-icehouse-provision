@@ -221,8 +221,14 @@ function verifyIdentityServiceInstall {
 
   sudo grep "CHECK_IDENTITY_SERVICE_INSTALL" $INSTALLFILE &>$LOGFILE
   if [[ $? -ne 0 ]]; then
+    # ensure that tokens can be retrieved using the RC file
     sudo -s /bin/bash -c "source /root/admin-openrc.sh && keystone token-get &>$LOGFILE" || { printError; }
-    sudo -s /bin/bash -c "source /root/admin-openrc.sh && keystone token-get &>$LOGFILE" || { printError; }
+
+    # ensure that the admin user has admin auth
+    adminId=$(sudo -s /bin/bash -c "source /root/admin-openrc.sh && keystone user-list | grep admin"      | awk '{print $2}')
+    userId=$(sudo  -s /bin/bash -c "source /root/admin-openrc.sh && keystone user-role-list | grep admin" | awk '{print $6}')
+    if [[ $adminId != $userId ]]; then printError; fi
+
     sudo echo "CHECK_IDENTITY_SERVICE_INSTALL" >> $INSTALLFILE
   fi
 
